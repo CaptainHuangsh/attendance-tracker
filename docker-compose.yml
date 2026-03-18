@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  attendance-tracker:
+    build: .
+    container_name: attendance-tracker
+    network_mode: host  # 必须用host网络才能扫描局域网设备
+    restart: always
+    volumes:
+      - ./data:/app/data  # 数据持久化
+    environment:
+      - TZ=Asia/Shanghai

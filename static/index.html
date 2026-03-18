@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上下班自动统计系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">上下班自动统计系统</h1>
+        
+        <!-- 状态卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">设备状态</h3>
+                <p id="device-status" class="text-2xl font-bold">检查中...</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">上班窗口</h3>
+                <p id="work-window" class="text-xl">检查中...</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">下班窗口</h3>
+                <p id="home-window" class="text-xl">检查中...</p>
+            </div>
+        </div>
+
+        <!-- 导航标签 -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button id="tab-record" class="px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-600">考勤记录</button>
+            <button id="tab-config" class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700">系统配置</button>
+        </div>
+
+        <!-- 考勤记录页面 -->
+        <div id="page-record" class="bg-white rounded-lg shadow p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上班时间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下班时间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-list" class="bg-white divide-y divide-gray-200">
+                        <!-- 数据动态填充 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 配置页面 -->
+        <div id="page-config" class="bg-white rounded-lg shadow p-6 hidden">
+            <form id="config-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">MAC地址</label>
+                    <input type="text" id="mac_address" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="例如: aa:bb:cc:dd:ee:ff">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">静态IP地址</label>
+                    <input type="text" id="static_ip" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="例如: 192.168.1.100">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">上班窗口开始时间</label>
+                    <input type="time" id="work_start" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">上班窗口结束时间</label>
+                    <input type="time" id="work_end" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">下班窗口开始时间</label>
+                    <input type="time" id="home_start" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">下班窗口结束时间</label>
+                    <input type="time" id="home_end" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">扫描间隔（秒）</label>
+                    <input type="number" id="scan_interval" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value="60">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">上班连续丢失次数</label>
+                    <input type="number" id="work_lost_count" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value="2">
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium">保存配置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 标签切换
+        document.getElementById('tab-record').addEventListener('click', () => {
+            document.getElementById('tab-record').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+            document.getElementById('tab-record').classList.remove('text-gray-500');
+            document.getElementById('tab-config').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+            document.getElementById('tab-config').classList.add('text-gray-500');
+            document.getElementById('page-record').classList.remove('hidden');
+            document.getElementById('page-config').classList.add('hidden');
+            loadAttendance();
+        });
+
+        document.getElementById('tab-config').addEventListener('click', () => {
+            document.getElementById('tab-config').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+            document.getElementById('tab-config').classList.remove('text-gray-500');
+            document.getElementById('tab-record').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+            document.getElementById('tab-record').classList.add('text-gray-500');
+            document.getElementById('page-config').classList.remove('hidden');
+            document.getElementById('page-record').classList.add('hidden');
+            loadConfig();
+        });
+
+        // 加载状态
+        async function loadStatus() {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            
+            // 设备状态
+            const deviceStatus = document.getElementById('device-status');
+            if (data.device_online) {
+                deviceStatus.textContent = '在线';
+                deviceStatus.className = 'text-2xl font-bold text-green-600';
+            } else {
+                deviceStatus.textContent = '离线';
+                deviceStatus.className = 'text-2xl font-bold text-red-600';
+            }
+            
+            // 窗口状态
+            document.getElementById('work-window').textContent = data.in_work_window ? '检测中' : '未在窗口';
+            document.getElementById('home-window').textContent = data.in_home_window ? '检测中' : '未在窗口';
+        }
+
+        // 加载考勤记录
+        async function loadAttendance() {
+            const res = await fetch('/api/attendance?limit=30');
+            const records = await res.json();
+            const list = document.getElementById('attendance-list');
+            
+            list.innerHTML = records.map(record => {
+                let workStatus = '';
+                let homeStatus = '';
+                
+                if (record.work_status === 1) {
+                    workStatus = `<span class="text-green-600">${record.work_time?.split(' ')[1] || ''}</span>`;
+                } else {
+                    workStatus = `<span class="text-gray-400">未检测</span>`;
+                }
+                
+                if (record.home_status === 1) {
+                    homeStatus = `<span class="text-green-600">${record.home_time?.split(' ')[1] || ''}</span>`;
+                } else {
+                    homeStatus = `<span class="text-gray-400">未检测</span>`;
+                }
+                
+                let status = '';
+                if (record.work_status === 1 && record.home_status === 1) {
+                    status = `<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">正常</span>`;
+                } else if (record.work_status === 1 || record.home_status === 1) {
+                    status = `<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">部分检测</span>`;
+                } else {
+                    status = `<span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">未检测</span>`;
+                }
+                
+                return `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">${record.work_date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${workStatus}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${homeStatus}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${status}</td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        // 加载配置
+        async function loadConfig() {
+            const res = await fetch('/api/config');
+            const config = await res.json();
+            
+            document.getElementById('mac_address').value = config.mac_address;
+            document.getElementById('static_ip').value = config.static_ip;
+            document.getElementById('work_start').value = config.work_start;
+            document.getElementById('work_end').value = config.work_end;
+            document.getElementById('home_start').value = config.home_start;
+            document.getElementById('home_end').value = config.home_end;
+            document.getElementById('scan_interval').value = config.scan_interval;
+            document.getElementById('work_lost_count').value = config.work_lost_count;
+        }
+
+        // 保存配置
+        document.getElementById('config-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const config = {
+                mac_address: document.getElementById('mac_address').value,
+                static_ip: document.getElementById('static_ip').value,
+                work_start: document.getElementById('work_start').value,
+                work_end: document.getElementById('work_end').value,
+                home_start: document.getElementById('home_start').value,
+                home_end: document.getElementById('home_end').value,
+                scan_interval: parseInt(document.getElementById('scan_interval').value),
+                work_lost_count: parseInt(document.getElementById('work_lost_count').value)
+            };
+            
+            const res = await fetch('/api/config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            });
+            
+            if (res.ok) {
+                alert('配置保存成功，立即生效');
+            } else {
+                alert('保存失败，请重试');
+            }
+        });
+
+        // 初始化
+        loadStatus();
+        loadAttendance();
+        
+        // 每分钟刷新状态
+        setInterval(loadStatus, 60000);
+    </script>
+</body>
+</html>

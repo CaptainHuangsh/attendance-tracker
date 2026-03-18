@@ -1,0 +1,10 @@
+{
+  "mac_address": "64:BD:6D:B3:79:32",
+  "static_ip": "192.168.1.16",
+  "work_start": "07:40",
+  "work_end": "08:40",
+  "home_start": "20:50",
+  "home_end": "00:30",
+  "scan_interval": 60,
+  "work_lost_count": 2
+}
