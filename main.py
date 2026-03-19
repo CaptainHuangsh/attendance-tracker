@@ -2,11 +2,15 @@ import os
 import json
 import time
 import datetime
+import logging
+import logging.handlers
 import subprocess
-from typing import Optional
+import csv
+from io import StringIO
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 import sqlite3
 from contextlib import asynccontextmanager
@@ -14,6 +18,7 @@ from contextlib import asynccontextmanager
 # 数据库路径
 DB_PATH = "data/attendance.db"
 CONFIG_PATH = "data/config.json"
+LOG_PATH = "data/app.log"
 
 # 默认配置
 DEFAULT_CONFIG = {
@@ -24,7 +29,8 @@ DEFAULT_CONFIG = {
     "home_start": "20:50",
     "home_end": "00:30",
     "scan_interval": 60,
-    "work_lost_count": 2
+    "work_lost_count": 2,
+    "workdays": [0, 1, 2, 3, 4]
 }
 
 # 初始化数据库
@@ -219,7 +225,6 @@ def update_home_time():
 
 # 后台扫描任务
 def scan_loop():
-    work_lost_counter = 0
     config = load_config()
     
     while True:
@@ -231,17 +236,16 @@ def scan_loop():
                 
             config = load_config()
             today_record = get_today_record()
+            work_lost_counter = 0
             
-            # 上班检测逻辑
+            # 上班检测逻辑：如果已经打卡，跳过计数
             if is_in_work_window() and today_record["work_status"] == 0:
                 online = is_device_online()
                 if not online:
                     work_lost_counter += 1
                     if work_lost_counter >= config["work_lost_count"]:
                         update_work_time()
-                        work_lost_counter = 0
-                else:
-                    work_lost_counter = 0
+                # 无需重置，每次循环都重新开始计数，避免重启服务漏检
             
             # 下班检测逻辑
             if is_in_home_window() and today_record["home_status"] == 0:
