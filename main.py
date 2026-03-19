@@ -91,39 +91,65 @@ def ping_ip(ip: str) -> bool:
 # MAC地址检测
 def check_mac(mac: str, ip: str) -> bool:
     try:
-        # 尝试ARP查询
+        # 尝试扫描邻居表（主要方法）
         output = subprocess.run(
-            ["arp", "-n", ip],
+            ["ip", "neigh", "show"],
             capture_output=True,
             text=True
         )
-        if mac.lower() in output.stdout.lower():
-            return True
         
-        # 尝试扫描邻居表
-        output = subprocess.run(
-            ["ip", "neigh"],
-            capture_output=True,
-            text=True
-        )
-        return mac.lower() in output.stdout.lower()
-    except:
+        # 解析ip neigh输出，查找指定IP的MAC地址
+        for line in output.stdout.split('\n'):
+            if not line.strip():
+                continue
+            parts = line.split()
+            if len(parts) >= 5 and parts[0] == ip:
+                # 找到IP对应的MAC地址（在lladdr后面）
+                for i, part in enumerate(parts):
+                    if part == 'lladdr' and i + 1 < len(parts):
+                        found_mac = parts[i + 1].lower()
+                        # 比较MAC地址（忽略大小写和分隔符差异）
+                        target_mac = mac.lower().replace('-', ':').replace('.', ':')
+                        found_mac_normalized = found_mac.replace('-', ':').replace('.', ':')
+                        if target_mac == found_mac_normalized:
+                            logger.info(f"MAC匹配成功: 配置={target_mac}, 实际={found_mac_normalized}")
+                            return True
+                        else:
+                            logger.warning(f"MAC不匹配: 配置={target_mac}, 实际={found_mac_normalized}")
+                            return False
+        
+        # 如果找到了IP但没有匹配的MAC，或者根本没有找到IP
+        logger.warning(f"未在邻居表中找到IP {ip} 或MAC不匹配")
+        return False
+    except Exception as e:
+        logger.error(f"检查MAC时出错: {e}")
         return False
 
-# 双校验设备是否在线
+# 双校验设备是否在线（宽松策略：只要IP能ping通就认为在线）
 def is_device_online() -> bool:
     config = load_config()
-    if not config["static_ip"] or not config["mac_address"]:
-        logger.warning("未配置IP或MAC，返回离线")
+    if not config["static_ip"]:
+        logger.warning("未配置IP，返回离线")
         return False
     
     ip_ok = ping_ip(config["static_ip"])
-    mac_ok = check_mac(config["mac_address"], config["static_ip"])
-    # 需要同时满足：ping能通 且 MAC匹配，才认为在线
-    # 避免ARP缓存过期导致误判（设备走后ARP缓存还留存）
-    result = ip_ok and mac_ok
-    logger.info(f"设备检测: IP={config['static_ip']} MAC={config['mac_address']} ping={ip_ok} mac={mac_ok} result={result}")
-    return result
+    if not ip_ok:
+        logger.warning(f"IP {config['static_ip']} ping不通，设备离线")
+        return False
+    
+    # 如果配置了MAC地址，尝试检查但不强制要求
+    if config.get("mac_address"):
+        mac_ok = check_mac(config["mac_address"], config["static_ip"])
+        if mac_ok:
+            logger.info(f"设备检测: IP={config['static_ip']} MAC={config['mac_address']} ping={ip_ok} mac={mac_ok} - MAC匹配")
+            return True
+        else:
+            logger.warning(f"设备检测: IP={config['static_ip']} ping通但MAC不匹配，仍认为在线（ARP缓存可能过期）")
+            # IP能ping通就认为在线，MAC匹配失败不阻塞
+            return True
+    else:
+        logger.info(f"设备检测: IP={config['static_ip']} ping={ip_ok} - 未配置MAC，仅依赖ping")
+        return ip_ok
 
 # 初始化日志
 def init_logger():
@@ -253,6 +279,7 @@ def update_home_time():
 # 后台扫描任务
 def scan_loop():
     config = load_config()
+    work_lost_counter = 0  # 计数器应该在循环外累积
     
     while True:
         try:
@@ -263,7 +290,6 @@ def scan_loop():
                 
             config = load_config()
             today_record = get_today_record()
-            work_lost_counter = 0
             
             # 上班检测逻辑：如果已经打卡，跳过计数
             if is_in_work_window() and today_record["work_status"] == 0:
@@ -273,12 +299,18 @@ def scan_loop():
                     if work_lost_counter >= config["work_lost_count"]:
                         update_work_time()
                 # 无需重置，每次循环都重新开始计数，避免重启服务漏检
+            else:
+                # 不在上班窗口或已打卡，重置计数器
+                work_lost_counter = 0
             
             # 下班检测逻辑
             if is_in_home_window() and today_record["home_status"] == 0:
                 online = is_device_online()
+                logger.info(f"下班检测: 窗口内={is_in_home_window()}, 已打卡={today_record['home_status']==1}, 设备在线={online}")
                 if online:
                     update_home_time()
+                else:
+                    logger.info(f"下班检测: 设备离线，不打卡")
             
             time.sleep(config["scan_interval"])
         except Exception as e:
