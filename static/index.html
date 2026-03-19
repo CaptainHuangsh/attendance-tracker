@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>上下班自动统计系统</title>
+    <title>牛马打工人</title>
+    <link rel="icon" type="image/png" href="/static/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -57,7 +58,10 @@
         <!-- 顶部导航 -->
         <div class="bg-white rounded-lg shadow-sm mb-6 px-6 py-4">
             <div class="flex items-center justify-between">
-                <h1 class="text-xl font-semibold text-gray-800">上下班自动统计系统</h1>
+                <div class="flex items-center gap-4">
+                    <img src="/static/logo.png" alt="Logo" class="w-10 h-10 rounded-full">
+                    <h1 class="text-xl font-semibold text-gray-800">牛马打工人</h1>
+                </div>
                 <div class="flex items-center gap-3">
                     <button onclick="exportCSV()" class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-500 text-sm font-medium transition-colors">
                         导出CSV
