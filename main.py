@@ -114,11 +114,16 @@ def check_mac(mac: str, ip: str) -> bool:
 def is_device_online() -> bool:
     config = load_config()
     if not config["static_ip"] or not config["mac_address"]:
+        logger.warning("未配置IP或MAC，返回离线")
         return False
     
     ip_ok = ping_ip(config["static_ip"])
     mac_ok = check_mac(config["mac_address"], config["static_ip"])
-    return ip_ok or mac_ok
+    # 需要同时满足：ping能通 且 MAC匹配，才认为在线
+    # 避免ARP缓存过期导致误判（设备走后ARP缓存还留存）
+    result = ip_ok and mac_ok
+    logger.info(f"设备检测: IP={config['static_ip']} MAC={config['mac_address']} ping={ip_ok} mac={mac_ok} result={result}")
+    return result
 
 # 初始化日志
 def init_logger():
@@ -227,6 +232,7 @@ def update_work_time():
                  WHERE work_date = ?""", (now, get_work_date()))
     conn.commit()
     conn.close()
+    logger.info(f"自动打卡上班 {get_work_date()} {now}")
 
 # 更新下班记录
 def update_home_time():
@@ -242,6 +248,7 @@ def update_home_time():
                  WHERE work_date = ?""", (now, get_work_date()))
     conn.commit()
     conn.close()
+    logger.info(f"自动打卡下班 {get_work_date()} {now}")
 
 # 后台扫描任务
 def scan_loop():
