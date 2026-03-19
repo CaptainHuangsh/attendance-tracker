@@ -120,14 +120,34 @@ def is_device_online() -> bool:
     mac_ok = check_mac(config["mac_address"], config["static_ip"])
     return ip_ok or mac_ok
 
-# 判断是否为工作日（排除周末，后续可扩展法定节假日）
+# 初始化日志
+def init_logger():
+    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+    logger = logging.getLogger("attendance")
+    logger.setLevel(logging.INFO)
+    # 轮转文件日志，保留5个备份，每个最大10MB
+    handler = logging.handlers.RotatingFileHandler(
+        LOG_PATH,
+        maxBytes=10*1024*1024,
+        backupCount=5,
+        encoding='utf-8'
+    )
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(handler)
+    # 控制台输出
+    console = logging.StreamHandler()
+    console.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(console)
+    return logger
+
+logger = init_logger()
+
+# 判断是否为工作日（使用自定义workdays配置）
 def is_workday() -> bool:
     now = datetime.datetime.now()
-    # 0=周一，4=周五，5=周六，6=周日
-    if now.weekday() >= 5:
-        return False
-    # 法定节假日判断可在此处扩展
-    return True
+    config = load_config()
+    workdays = config.get("workdays", [0, 1, 2, 3, 4])
+    return now.weekday() in workdays
 
 # 获取今天的日期（处理跨天情况）
 def get_work_date() -> str:
@@ -283,6 +303,14 @@ class Config(BaseModel):
     home_end: str
     scan_interval: int
     work_lost_count: int
+    workdays: Optional[List[int]] = None
+
+# 补卡请求模型
+class FixRequest(BaseModel):
+    work_date: str
+    type: str
+    time: str
+    remark: Optional[str] = None
 
 # API接口
 @app.get("/api/config")
@@ -291,7 +319,10 @@ def get_config():
 
 @app.post("/api/config")
 def update_config(config: Config):
-    save_config(config.dict())
+    current = load_config()
+    current.update(config.dict(exclude_unset=True))
+    save_config(current)
+    logger.info("配置已更新")
     return {"status": "success"}
 
 @app.get("/api/attendance")
@@ -316,6 +347,95 @@ def get_attendance(limit: int = 30):
             "remark": record[6]
         })
     return result
+
+@app.get("/api/attendance/month/{year}/{month}")
+def get_month_attendance(year: int, month: int):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    # 计算月份范围
+    if month == 12:
+        next_year = year + 1
+        next_month = 1
+    else:
+        next_year = year
+        next_month = month + 1
+    start_date = f"{year:04d}-{month:02d}-01"
+    end_date = f"{next_year:04d}-{next_month:02d}-01"
+    
+    c.execute("""SELECT * FROM attendance 
+                 WHERE work_date >= ? AND work_date < ?
+                 ORDER BY work_date DESC""", (start_date, end_date))
+    records = c.fetchall()
+    conn.close()
+    
+    result = []
+    for record in records:
+        result.append({
+            "id": record[0],
+            "work_date": record[1],
+            "work_time": record[2],
+            "home_time": record[3],
+            "work_status": record[4],
+            "home_status": record[5],
+            "remark": record[6]
+        })
+    logger.info(f"查询月统计 {year}-{month}, {len(result)} 条记录")
+    return result
+
+@app.get("/api/export/csv")
+def export_csv():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""SELECT * FROM attendance 
+                 ORDER BY work_date DESC""")
+    records = c.fetchall()
+    conn.close()
+    
+    # 生成CSV
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "日期", "上班时间", "下班时间", "上班状态", "下班状态", "备注", "创建时间", "更新时间"])
+    for record in records:
+        writer.writerow([
+            record[0], record[1], record[2], record[3],
+            record[4], record[5], record[6], record[7], record[8]
+        ])
+    
+    output.seek(0)
+    logger.info(f"导出CSV {len(records)} 条记录")
+    return StreamingResponse(
+        output,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=attendance_{datetime.datetime.now().strftime('%Y%m%d')}.csv"}
+    )
+
+@app.post("/api/attendance/fix")
+def fix_attendance(req: FixRequest):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # 检查记录是否存在
+    c.execute("SELECT * FROM attendance WHERE work_date = ?", (req.work_date,))
+    record = c.fetchone()
+    
+    if not record:
+        c.execute("INSERT INTO attendance (work_date) VALUES (?)", (req.work_date,))
+        conn.commit()
+    
+    if req.type == "work":
+        c.execute("""UPDATE attendance 
+                     SET work_time = ?, work_status = 1, remark = ?, update_time = CURRENT_TIMESTAMP
+                     WHERE work_date = ?""", (req.time, req.remark, req.work_date))
+    elif req.type == "home":
+        c.execute("""UPDATE attendance 
+                     SET home_time = ?, home_status = 1, remark = ?, update_time = CURRENT_TIMESTAMP
+                     WHERE work_date = ?""", (req.time, req.remark, req.work_date))
+    
+    conn.commit()
+    conn.close()
+    
+    logger.info(f"手动补卡 {req.work_date} {req.type} {req.time}")
+    return {"status": "success"}
 
 @app.get("/api/status")
 def get_status():

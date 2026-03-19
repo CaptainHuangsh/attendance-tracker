@@ -4,196 +4,327 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>上下班自动统计系统</title>
-    <link rel="icon" type="image/png" href="/static/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1677FF',
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .status-tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-normal {
+            background-color: #f0fdf4;
+            color: #166534;
+        }
+        .status-pending {
+            background-color: #ffedd5;
+            color: #c2410c;
+        }
+        .status-missing {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+        tbody tr:hover {
+            background-color: #f9fafb;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <div class="flex justify-center mb-6">
-            <img src="/static/logo.png" alt="Logo" class="w-32 h-32 rounded-full shadow-lg">
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- 顶部导航 -->
+        <div class="bg-white rounded-lg shadow-sm mb-6 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-semibold text-gray-800">上下班自动统计系统</h1>
+                <div class="flex items-center gap-3">
+                    <button onclick="exportCSV()" class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-500 text-sm font-medium transition-colors">
+                        导出CSV
+                    </button>
+                    <button onclick="openConfigModal()" class="border border-primary text-primary px-4 py-2 rounded hover:bg-blue-50 text-sm font-medium transition-colors">
+                        系统配置
+                    </button>
+                </div>
+            </div>
         </div>
-        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">上下班自动统计系统</h1>
-        
+
         <!-- 状态卡片 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold mb-2 text-gray-700">设备状态</h3>
-                <p id="device-status" class="text-2xl font-bold">检查中...</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-5">
+                <h3 class="text-sm font-medium text-gray-500 mb-2">设备状态</h3>
+                <div id="device-status" class="text-lg font-semibold text-gray-800">加载中...</div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold mb-2 text-gray-700">上班窗口</h3>
-                <p id="work-window" class="text-xl">检查中...</p>
+            <div class="bg-white rounded-lg shadow-sm p-5">
+                <h3 class="text-sm font-medium text-gray-500 mb-2">上班检测窗口</h3>
+                <div id="work-window" class="text-lg font-semibold text-gray-800">加载中...</div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold mb-2 text-gray-700">下班窗口</h3>
-                <p id="home-window" class="text-xl">检查中...</p>
+            <div class="bg-white rounded-lg shadow-sm p-5">
+                <h3 class="text-sm font-medium text-gray-500 mb-2">下班检测窗口</h3>
+                <div id="home-window" class="text-lg font-semibold text-gray-800">加载中...</div>
             </div>
         </div>
 
-        <!-- 导航标签 -->
-        <div class="flex border-b border-gray-200 mb-6">
-            <button id="tab-record" class="px-6 py-3 font-medium text-blue-600 border-b-2 border-blue-600">考勤记录</button>
-            <button id="tab-config" class="px-6 py-3 font-medium text-gray-500 hover:text-gray-700">系统配置</button>
-        </div>
-
-        <!-- 考勤记录页面 -->
-        <div id="page-record" class="bg-white rounded-lg shadow p-6">
+        <!-- 考勤记录 -->
+        <div class="bg-white rounded-lg shadow-sm p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">最近考勤记录</h2>
+                <button onclick="openFixModal()" class="text-primary text-sm font-medium hover:text-blue-600">
+                    + 手动补卡
+                </button>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead>
-                        <tr class="bg-gray-50">
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上班时间</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下班时间</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上班时间</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下班时间</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                         </tr>
                     </thead>
-                    <tbody id="attendance-list" class="bg-white divide-y divide-gray-200">
+                    <tbody id="attendance-list" class="divide-y divide-gray-200">
                         <!-- 数据动态填充 -->
                     </tbody>
                 </table>
             </div>
+            <div class="mt-4 text-center text-sm text-gray-400" id="pagination-info">
+                显示最近 30 条记录
+            </div>
         </div>
+    </div>
 
-        <!-- 配置页面 -->
-        <div id="page-config" class="bg-white rounded-lg shadow p-6 hidden">
-            <form id="config-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">MAC地址</label>
-                    <input type="text" id="mac_address" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="例如: aa:bb:cc:dd:ee:ff">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">静态IP地址</label>
-                    <input type="text" id="static_ip" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="例如: 192.168.1.100">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">上班窗口开始时间</label>
-                    <input type="time" id="work_start" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">上班窗口结束时间</label>
-                    <input type="time" id="work_end" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">下班窗口开始时间</label>
-                    <input type="time" id="home_start" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">下班窗口结束时间</label>
-                    <input type="time" id="home_end" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">扫描间隔（秒）</label>
-                    <input type="number" id="scan_interval" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value="60">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">上班连续丢失次数</label>
-                    <input type="number" id="work_lost_count" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" value="2">
-                </div>
-                <div class="md:col-span-2">
-                    <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium">保存配置</button>
-                </div>
-            </form>
+    <!-- 配置弹窗 -->
+    <div id="config-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-800">系统配置</h3>
+                <button onclick="closeConfigModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="px-6 py-6">
+                <form id="config-form" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">MAC地址</label>
+                        <input type="text" id="mac_address" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="例如: aa:bb:cc:dd:ee:ff">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">静态IP地址</label>
+                        <input type="text" id="static_ip" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="例如: 192.168.1.100">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">上班窗口开始</label>
+                        <input type="time" id="work_start" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">上班窗口结束</label>
+                        <input type="time" id="work_end" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">下班窗口开始</label>
+                        <input type="time" id="home_start" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">下班窗口结束</label>
+                        <input type="time" id="home_end" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">扫描间隔（秒）</label>
+                        <input type="number" id="scan_interval" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="60">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">上班连续丢失次数</label>
+                        <input type="number" id="work_lost_count" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="2">
+                    </div>
+                    <div class="md:col-span-2 flex items-center justify-end gap-3 pt-2">
+                        <button type="button" onclick="closeConfigModal()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-sm font-medium">取消</button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-blue-500 text-sm font-medium">保存配置</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 补卡弹窗 -->
+    <div id="fix-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-800">手动补卡</h3>
+                <button onclick="closeFixModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="px-6 py-6">
+                <form id="fix-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">日期</label>
+                        <input type="date" id="fix_work_date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">补卡类型</label>
+                        <select id="fix_type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="work">上班打卡</option>
+                            <option value="home">下班打卡</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">打卡时间</label>
+                        <input type="datetime-local" id="fix_time" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">备注（可选）</label>
+                        <input type="text" id="fix_remark" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="补卡原因">
+                    </div>
+                    <div class="flex items-center justify-end gap-3 pt-2">
+                        <button type="button" onclick="closeFixModal()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-sm font-medium">取消</button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-blue-500 text-sm font-medium">确认补卡</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
     <script>
-        // 标签切换
-        document.getElementById('tab-record').addEventListener('click', () => {
-            document.getElementById('tab-record').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-            document.getElementById('tab-record').classList.remove('text-gray-500');
-            document.getElementById('tab-config').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-            document.getElementById('tab-config').classList.add('text-gray-500');
-            document.getElementById('page-record').classList.remove('hidden');
-            document.getElementById('page-config').classList.add('hidden');
-            loadAttendance();
-        });
-
-        document.getElementById('tab-config').addEventListener('click', () => {
-            document.getElementById('tab-config').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-            document.getElementById('tab-config').classList.remove('text-gray-500');
-            document.getElementById('tab-record').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-            document.getElementById('tab-record').classList.add('text-gray-500');
-            document.getElementById('page-config').classList.remove('hidden');
-            document.getElementById('page-record').classList.add('hidden');
+        // 弹窗控制
+        function openConfigModal() {
+            document.getElementById('config-modal').classList.remove('hidden');
             loadConfig();
-        });
+        }
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
+        function openFixModal() {
+            document.getElementById('fix-modal').classList.remove('hidden');
+            // 默认设置今天日期
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            document.getElementById('fix_work_date').value = dateStr;
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('fix_time').value = now.toISOString().slice(0, 16);
+        }
+        function closeFixModal() {
+            document.getElementById('fix-modal').classList.add('hidden');
+        }
+
+        // 导出CSV
+        function exportCSV() {
+            window.location.href = '/api/export/csv';
+        }
 
         // 加载状态
         async function loadStatus() {
-            const res = await fetch('/api/status');
-            const data = await res.json();
-            
-            // 设备状态
-            const deviceStatus = document.getElementById('device-status');
-            if (data.device_online) {
-                deviceStatus.textContent = '在线';
-                deviceStatus.className = 'text-2xl font-bold text-green-600';
-            } else {
-                deviceStatus.textContent = '离线';
-                deviceStatus.className = 'text-2xl font-bold text-red-600';
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                
+                const deviceStatusEl = document.getElementById('device-status');
+                if (data.device_online) {
+                    deviceStatusEl.innerHTML = '<span class="text-green-600">在线</span>';
+                } else {
+                    deviceStatusEl.innerHTML = '<span class="text-orange-500">离线</span>';
+                }
+                
+                document.getElementById('work-window').textContent = data.in_work_window ? '检测中' : '未在窗口';
+                document.getElementById('home-window').textContent = data.in_home_window ? '检测中' : '未在窗口';
+            } catch (e) {
+                console.error('加载状态失败', e);
             }
-            
-            // 窗口状态
-            document.getElementById('work-window').textContent = data.in_work_window ? '检测中' : '未在窗口';
-            document.getElementById('home-window').textContent = data.in_home_window ? '检测中' : '未在窗口';
+        }
+
+        // 格式化时间
+        function formatTime(datetimeStr) {
+            if (!datetimeStr) return '';
+            return datetimeStr.split(' ')[1]?.substring(0, 5) || '';
+        }
+
+        // 获取状态标签
+        function getStatusTag(record) {
+            if (record.work_status === 1 && record.home_status === 1) {
+                return '<span class="status-tag status-normal">完整</span>';
+            } else if (record.work_status === 1 || record.home_status === 1) {
+                return '<span class="status-tag status-pending">部分</span>';
+            } else {
+                return '<span class="status-tag status-missing">未检测</span>';
+            }
+        }
+
+        function getTimeText(record, type) {
+            const time = type === 'work' ? record.work_time : record.home_time;
+            const status = type === 'work' ? record.work_status : record.home_status;
+            if (status === 1 && time) {
+                return `<span class="text-gray-800">${formatTime(time)}</span>`;
+            } else {
+                return `<span class="text-gray-400">—</span>`;
+            }
         }
 
         // 加载考勤记录
         async function loadAttendance() {
-            const res = await fetch('/api/attendance?limit=30');
-            const records = await res.json();
-            const list = document.getElementById('attendance-list');
-            
-            list.innerHTML = records.map(record => {
-                let workStatus = '';
-                let homeStatus = '';
+            try {
+                const res = await fetch('/api/attendance?limit=30');
+                const records = await res.json();
+                const listEl = document.getElementById('attendance-list');
                 
-                if (record.work_status === 1) {
-                    workStatus = `<span class="text-green-600">${record.work_time?.split(' ')[1] || ''}</span>`;
-                } else {
-                    workStatus = `<span class="text-gray-400">未检测</span>`;
-                }
-                
-                if (record.home_status === 1) {
-                    homeStatus = `<span class="text-green-600">${record.home_time?.split(' ')[1] || ''}</span>`;
-                } else {
-                    homeStatus = `<span class="text-gray-400">未检测</span>`;
-                }
-                
-                let status = '';
-                if (record.work_status === 1 && record.home_status === 1) {
-                    status = `<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">正常</span>`;
-                } else if (record.work_status === 1 || record.home_status === 1) {
-                    status = `<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">部分检测</span>`;
-                } else {
-                    status = `<span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">未检测</span>`;
-                }
-                
-                return `
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">${record.work_date}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${workStatus}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${homeStatus}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${status}</td>
-                </tr>
-                `;
-            }).join('');
+                listEl.innerHTML = records.map(record => {
+                    return `
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${record.work_date}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">${getTimeText(record, 'work')}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">${getTimeText(record, 'home')}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">${getStatusTag(record)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            <button onclick="openFixModalForDate('${record.work_date}')" class="text-primary hover:text-blue-600 text-sm">补卡</button>
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('加载考勤失败', e);
+            }
+        }
+
+        // 为指定日期打开补卡
+        function openFixModalForDate(workDate) {
+            openFixModal();
+            document.getElementById('fix_work_date').value = workDate;
         }
 
         // 加载配置
         async function loadConfig() {
-            const res = await fetch('/api/config');
-            const config = await res.json();
-            
-            document.getElementById('mac_address').value = config.mac_address;
-            document.getElementById('static_ip').value = config.static_ip;
-            document.getElementById('work_start').value = config.work_start;
-            document.getElementById('work_end').value = config.work_end;
-            document.getElementById('home_start').value = config.home_start;
-            document.getElementById('home_end').value = config.home_end;
-            document.getElementById('scan_interval').value = config.scan_interval;
-            document.getElementById('work_lost_count').value = config.work_lost_count;
+            try {
+                const res = await fetch('/api/config');
+                const config = await res.json();
+                
+                document.getElementById('mac_address').value = config.mac_address || '';
+                document.getElementById('static_ip').value = config.static_ip || '';
+                document.getElementById('work_start').value = config.work_start || '';
+                document.getElementById('work_end').value = config.work_end || '';
+                document.getElementById('home_start').value = config.home_start || '';
+                document.getElementById('home_end').value = config.home_end || '';
+                document.getElementById('scan_interval').value = config.scan_interval || 60;
+                document.getElementById('work_lost_count').value = config.work_lost_count || 2;
+            } catch (e) {
+                console.error('加载配置失败', e);
+            }
         }
 
         // 保存配置
@@ -208,21 +339,65 @@
                 home_start: document.getElementById('home_start').value,
                 home_end: document.getElementById('home_end').value,
                 scan_interval: parseInt(document.getElementById('scan_interval').value),
-                work_lost_count: parseInt(document.getElementById('work_lost_count').value)
+                work_lost_count: parseInt(document.getElementById('work_lost_count').value),
+                workdays: [0, 1, 2, 3, 4]
             };
             
-            const res = await fetch('/api/config', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(config)
-            });
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (res.ok) {
+                    alert('配置保存成功');
+                    closeConfigModal();
+                } else {
+                    alert('保存失败');
+                }
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
+        });
+
+        // 提交补卡
+        document.getElementById('fix-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            if (res.ok) {
-                alert('配置保存成功，立即生效');
-            } else {
-                alert('保存失败，请重试');
+            const workDate = document.getElementById('fix_work_date').value;
+            const type = document.getElementById('fix_type').value;
+            const timeStr = document.getElementById('fix_time').value;
+            const remark = document.getElementById('fix_remark').value;
+            
+            // 转换为 YYYY-MM-DD HH:MM:SS 格式
+            const dt = new Date(timeStr);
+            const formattedTime = dt.toISOString().replace('T', ' ').substring(0, 19);
+            
+            const data = {
+                work_date: workDate,
+                type: type,
+                time: formattedTime,
+                remark: remark
+            };
+            
+            try {
+                const res = await fetch('/api/attendance/fix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await res.json();
+                if (result.status === 'success') {
+                    alert('补卡成功');
+                    closeFixModal();
+                    loadAttendance();
+                } else {
+                    alert('补卡失败: ' + (result.message || '未知错误'));
+                }
+            } catch (e) {
+                alert('补卡失败: ' + e.message);
             }
         });
 
@@ -230,7 +405,7 @@
         loadStatus();
         loadAttendance();
         
-        // 每分钟刷新状态
+        // 每分钟刷新
         setInterval(loadStatus, 60000);
     </script>
 </body>
