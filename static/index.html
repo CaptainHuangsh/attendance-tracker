@@ -219,11 +219,17 @@
             document.getElementById('fix-modal').classList.remove('hidden');
             // 默认设置今天日期
             const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
             document.getElementById('fix_work_date').value = dateStr;
+            
+            // 设置当前时间（本地时间，不使用UTC）
             const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('fix_time').value = now.toISOString().slice(0, 16);
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('fix_time').value = `${dateStr}T${hours}:${minutes}`;
         }
         function closeFixModal() {
             document.getElementById('fix-modal').classList.add('hidden');
@@ -374,9 +380,18 @@
             const timeStr = document.getElementById('fix_time').value;
             const remark = document.getElementById('fix_remark').value;
             
-            // 转换为 YYYY-MM-DD HH:MM:SS 格式
-            const dt = new Date(timeStr);
-            const formattedTime = dt.toISOString().replace('T', ' ').substring(0, 19);
+            // 转换为 YYYY-MM-DD HH:MM:SS 格式（使用本地时间而非UTC）
+            // 注意：datetime-local输入返回的是本地时间字符串，格式为 YYYY-MM-DDTHH:MM
+            // 我们直接解析字符串，避免Date对象的时区问题
+            const [datePart, timePart] = timeStr.split('T');
+            const [year, month, day] = datePart.split('-');
+            const [hours, minutes] = timePart.split(':');
+            const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:00`;
+            
+            // 调试日志
+            console.log('补卡时间处理:');
+            console.log('  原始输入:', timeStr);
+            console.log('  解析结果:', formattedTime);
             
             const data = {
                 work_date: workDate,

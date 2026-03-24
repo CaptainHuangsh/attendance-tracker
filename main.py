@@ -276,15 +276,37 @@ def update_home_time():
     conn.close()
     logger.info(f"自动打卡下班 {get_work_date()} {now}")
 
+# 持久化计数器路径
+WORK_COUNTER_PATH = "data/work_counter.txt"
+
+# 读取持久化计数器
+def load_work_counter():
+    if os.path.exists(WORK_COUNTER_PATH):
+        try:
+            with open(WORK_COUNTER_PATH, 'r') as f:
+                return int(f.read().strip())
+        except:
+            return 0
+    return 0
+
+# 保存持久化计数器
+def save_work_counter(counter):
+    os.makedirs(os.path.dirname(WORK_COUNTER_PATH), exist_ok=True)
+    with open(WORK_COUNTER_PATH, 'w') as f:
+        f.write(str(counter))
+
 # 后台扫描任务
 def scan_loop():
     config = load_config()
-    work_lost_counter = 0  # 计数器应该在循环外累积
+    work_lost_counter = load_work_counter()  # 从文件加载计数器，重启不丢失
+    
+    logger.info("scan_loop线程启动，初始计数器: %d", work_lost_counter)
     
     while True:
         try:
             # 周末/节假日不检测
             if not is_workday():
+                logger.debug(f"非工作日，跳过检测")
                 time.sleep(config["scan_interval"])
                 continue
                 
@@ -296,25 +318,44 @@ def scan_loop():
                 online = is_device_online()
                 if not online:
                     work_lost_counter += 1
+                    save_work_counter(work_lost_counter)
+                    logger.info(f"上班检测: 设备离线，计数器={work_lost_counter}/{config['work_lost_count']}")
                     if work_lost_counter >= config["work_lost_count"]:
                         update_work_time()
-                # 无需重置，每次循环都重新开始计数，避免重启服务漏检
+                        work_lost_counter = 0
+                        save_work_counter(work_lost_counter)
+                else:
+                    # 设备在线，重置计数器（用户还在家）
+                    if work_lost_counter > 0:
+                        work_lost_counter = 0
+                        save_work_counter(work_lost_counter)
+                        logger.info(f"上班检测: 设备在线，重置计数器")
             else:
                 # 不在上班窗口或已打卡，重置计数器
-                work_lost_counter = 0
+                if work_lost_counter > 0:
+                    work_lost_counter = 0
+                    save_work_counter(work_lost_counter)
+                    logger.info(f"不在上班窗口或已打卡，重置计数器")
             
             # 下班检测逻辑
             if is_in_home_window() and today_record["home_status"] == 0:
                 online = is_device_online()
-                logger.info(f"下班检测: 窗口内={is_in_home_window()}, 已打卡={today_record['home_status']==1}, 设备在线={online}")
+                logger.info(f"下班检测: 窗口内={is_in_home_window()}, 已打卡={today_record['home_status']==1}, 设备在线={online}, 日期={get_work_date()}")
                 if online:
                     update_home_time()
+                    logger.info(f"下班打卡成功: {get_work_date()}")
                 else:
                     logger.info(f"下班检测: 设备离线，不打卡")
+            elif is_in_home_window() and today_record["home_status"] == 1:
+                logger.info(f"下班检测: 窗口内但已打卡, 时间={today_record['home_time']}")
+            elif not is_in_home_window() and today_record["home_status"] == 0:
+                # 记录不在窗口的时间，用于调试
+                now = datetime.datetime.now()
+                logger.debug(f"不在下班窗口: 当前时间={now.strftime('%H:%M')}, 窗口={config['home_start']}-{config['home_end']}")
             
             time.sleep(config["scan_interval"])
         except Exception as e:
-            print(f"Scan error: {e}")
+            logger.error(f"Scan error: {e}")
             time.sleep(10)
 
 @asynccontextmanager
