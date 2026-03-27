@@ -5,427 +5,999 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>牛马打工人</title>
     <link rel="icon" type="image/png" href="/static/logo.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1677FF',
-                    },
-                }
-            }
-        }
-    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8f9fa;
+            color: #1a1a2e;
+            min-height: 100vh;
         }
-        .status-tag {
+        .container { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
+        header { text-align: center; margin-bottom: 32px; }
+        header h1 { font-size: 28px; font-weight: 600; margin-bottom: 4px; }
+        header p { font-size: 14px; color: #9ca3af; }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 32px;
+            justify-content: center;
+        }
+        .tab {
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: white;
+            color: #6b7280;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .tab:hover { background: #f3f4f6; }
+        .tab.active { background: #1a1a2e; color: white; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            border: 1px solid #f0f0f0;
+        }
+        .stat-card h3 {
+            font-size: 11px;
+            font-weight: 500;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .stat-card .value { font-size: 22px; font-weight: 600; }
+        .online { color: #10b981; }
+        .offline { color: #f59e0b; }
+        .dot {
             display: inline-block;
-            padding: 2px 10px;
-            border-radius: 12px;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .dot.active { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.4); }
+        .dot.inactive { background: #d1d5db; }
+        
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .btn-primary { background: #1a1a2e; color: white; }
+        .btn-primary:hover { background: #2d2d44; }
+        .btn-outline { background: white; color: #1a1a2e; border: 1px solid #e5e7eb; }
+        .btn-outline:hover { background: #f9fafb; }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            border: 1px solid #f0f0f0;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .card-header h2 { font-size: 16px; font-weight: 600; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left;
+            font-size: 11px;
+            font-weight: 500;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        td {
+            padding: 14px 12px;
+            font-size: 14px;
+            border-bottom: 1px solid #fafafa;
+        }
+        tr:hover td { background: #fafafa; }
+        .date { font-weight: 500; }
+        .time { font-variant-numeric: tabular-nums; }
+        
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
             font-size: 12px;
             font-weight: 500;
         }
-        .status-normal {
-            background-color: #f0fdf4;
-            color: #166534;
+        .tag-complete { background: #ecfdf5; color: #059669; }
+        .tag-partial { background: #fef3c7; color: #d97706; }
+        .tag-none { background: #f3f4f6; color: #6b7280; }
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #6b7280;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
         }
-        .status-pending {
-            background-color: #ffedd5;
-            color: #c2410c;
+        .action-btn:hover { background: #f9fafb; }
+        
+        #attendance { display: block; }
+        #life-calendar { display: none; }
+        
+        .calendar-header { text-align: center; margin-bottom: 24px; }
+        .calendar-header h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .calendar-header p { font-size: 14px; color: #9ca3af; }
+        
+        .calendar-config {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 12px;
         }
-        .status-missing {
-            background-color: #f3f4f6;
+        .config-item { display: flex; flex-direction: column; gap: 6px; }
+        .config-item label { font-size: 12px; font-weight: 500; color: #6b7280; }
+        .config-item input, .config-item select {
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .view-toggle button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            background: white;
             color: #6b7280;
         }
-        tbody tr:hover {
-            background-color: #f9fafb;
+        .view-toggle button.active {
+            background: #1a1a2e;
+            color: white;
+            border-color: #1a1a2e;
         }
-        tbody tr:nth-child(even) {
-            background-color: #fafafa;
+        
+        .calendar-container {
+            overflow: auto;
+            padding: 20px 0;
+            max-height: 70vh;
+        }
+        .calendar-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            transform-origin: top left;
+            transition: transform 0.2s;
+        }
+        .zoom-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .zoom-controls span {
+            font-size: 12px;
+            color: #6b7280;
+            min-width: 60px;
+            text-align: center;
+        }
+        .zoom-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .zoom-btn:hover { background: #f3f4f6; }
+        .week-row {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+        }
+        .year-label {
+            font-size: 10px;
+            color: #9ca3af;
+            width: 36px;
+            text-align: right;
+            padding-right: 6px;
+            flex-shrink: 0;
+        }
+        .cell {
+            border-radius: 2px;
+            background: #e5e7eb;
+            cursor: pointer;
+            transition: transform 0.15s;
+            flex-shrink: 0;
+        }
+        .cell:hover { transform: scale(1.5); z-index: 10; position: relative; }
+        .cell.passed { background: #1a1a2e; }
+        .cell.current { background: #3b82f6; }
+        
+        .calendar-legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .legend-dot {
+            width: 14px; height: 14px;
+            border-radius: 2px;
+        }
+        
+        .calendar-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+        
+        .phase-config {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .phase-config h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .phase-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .phase-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: white;
+        }
+        .phase-tag .age { opacity: 0.8; font-size: 10px; }
+        .add-phase-btn {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px dashed #d1d5db;
+            background: transparent;
+            color: #6b7280;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 { font-size: 18px; font-weight: 600; }
+        .modal-close {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: #f3f4f6;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-group textarea { 
+            resize: vertical; 
+            min-height: 100px; 
+            font-family: 'Monaco', 'Consolas', monospace; 
+            font-size: 12px; 
+        }
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 640px) {
+            .stats { grid-template-columns: 1fr; }
+            .calendar-stats { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-4 py-6 max-w-6xl">
-        <!-- 顶部导航 -->
-        <div class="bg-white rounded-lg shadow-sm mb-6 px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <img src="/static/logo.png" alt="Logo" class="w-10 h-10 rounded-full">
-                    <h1 class="text-xl font-semibold text-gray-800">牛马打工人</h1>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="exportCSV()" class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-500 text-sm font-medium transition-colors">
-                        导出CSV
-                    </button>
-                    <button onclick="openConfigModal()" class="border border-primary text-primary px-4 py-2 rounded hover:bg-blue-50 text-sm font-medium transition-colors">
-                        系统配置
-                    </button>
-                </div>
-            </div>
+<body>
+    <div class="container">
+        <header>
+            <h1>牛马打工人</h1>
+            <p id="current-time"></p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="attendance">上下班记录</button>
+            <button class="tab" data-tab="calendar">人生日历</button>
         </div>
 
-        <!-- 状态卡片 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow-sm p-5">
-                <h3 class="text-sm font-medium text-gray-500 mb-2">设备状态</h3>
-                <div id="device-status" class="text-lg font-semibold text-gray-800">加载中...</div>
+        <div id="attendance">
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>设备状态</h3>
+                    <div class="value" id="device-status">--</div>
+                </div>
+                <div class="stat-card">
+                    <h3>上班窗口</h3>
+                    <div class="value" id="work-window">--</div>
+                </div>
+                <div class="stat-card">
+                    <h3>下班窗口</h3>
+                    <div class="value" id="home-window">--</div>
+                </div>
             </div>
-            <div class="bg-white rounded-lg shadow-sm p-5">
-                <h3 class="text-sm font-medium text-gray-500 mb-2">上班检测窗口</h3>
-                <div id="work-window" class="text-lg font-semibold text-gray-800">加载中...</div>
-            </div>
-            <div class="bg-white rounded-lg shadow-sm p-5">
-                <h3 class="text-sm font-medium text-gray-500 mb-2">下班检测窗口</h3>
-                <div id="home-window" class="text-lg font-semibold text-gray-800">加载中...</div>
-            </div>
-        </div>
 
-        <!-- 考勤记录 -->
-        <div class="bg-white rounded-lg shadow-sm p-5">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-800">最近考勤记录</h2>
-                <button onclick="openFixModal()" class="text-primary text-sm font-medium hover:text-blue-600">
-                    + 手动补卡
-                </button>
+            <div class="actions">
+                <button class="btn btn-outline" onclick="exportCSV()">导出 CSV</button>
+                <button class="btn btn-outline" onclick="openFixModal()">+ 补录</button>
+                <button class="btn btn-primary" onclick="openConfigModal()">设置</button>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
+
+            <div class="card">
+                <div class="card-header"><h2>考勤记录</h2></div>
+                <table>
                     <thead>
-                        <tr class="bg-gray-50 border-b border-gray-200">
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上班时间</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下班时间</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                        </tr>
+                        <tr><th>日期</th><th>上班</th><th>下班</th><th>状态</th><th></th></tr>
                     </thead>
-                    <tbody id="attendance-list" class="divide-y divide-gray-200">
-                        <!-- 数据动态填充 -->
-                    </tbody>
+                    <tbody id="attendance-list"></tbody>
                 </table>
             </div>
-            <div class="mt-4 text-center text-sm text-gray-400" id="pagination-info">
-                显示最近 30 条记录
+        </div>
+
+        <div id="life-calendar">
+            <div class="calendar-header">
+                <h2>人生格子</h2>
+                <p>每个格子代表一周，灰色是未来，深色已度过，彩色是人生阶段</p>
+            </div>
+            
+            <div class="calendar-config">
+                <div class="config-item">
+                    <label>生日</label>
+                    <input type="date" id="lc-birthday" value="1995-01-01">
+                </div>
+                <div class="config-item">
+                    <label>预期寿命（岁）</label>
+                    <input type="number" id="lc-lifespan" value="90" min="50" max="120">
+                </div>
+                <div class="config-item">
+                    <label>视图</label>
+                    <select id="lc-view">
+                        <option value="week">按周</option>
+                        <option value="day">按天</option>
+                    </select>
+                </div>
+                <div class="config-item">
+                    <label>方向</label>
+                    <select id="lc-dir">
+                        <option value="h">横排</option>
+                        <option value="v">竖排</option>
+                    </select>
+                </div>
+                <div class="config-item" style="justify-content: flex-end;">
+                    <button class="btn btn-primary" onclick="renderCalendar()">应用配置</button>
+                </div>
+            </div>
+
+            <div class="view-toggle">
+                <button class="active" onclick="setView('week')" id="btn-week">按周</button>
+                <button onclick="setView('day')" id="btn-day">按天</button>
+                <span style="margin:0 12px;color:#d1d5db;">|</span>
+                <button class="active" onclick="setDir('h')" id="btn-h">横排</button>
+                <button onclick="setDir('v')" id="btn-v">竖排</button>
+            </div>
+
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomOut()">−</button>
+                <span id="zoom-level">100%</span>
+                <button class="zoom-btn" onclick="zoomIn()">+</button>
+                <button class="zoom-btn" onclick="resetZoom()" style="margin-left:12px;font-size:11px;width:auto;padding:0 8px;">重置</button>
+            </div>
+
+            <div class="calendar-container" id="calendar-container">
+                <div class="calendar-grid" id="calendar-grid"></div>
+            </div>
+
+            <div class="calendar-legend" id="calendar-legend"></div>
+            
+            <div class="card" style="margin-top:32px;">
+                <div class="card-header">
+                    <h2>人生统计</h2>
+                    <button class="btn btn-outline" onclick="openCalendarConfigModal()" style="padding:6px 12px;font-size:12px;">编辑阶段</button>
+                </div>
+                <div class="calendar-stats">
+                    <div class="stat-card">
+                        <h3>已度过</h3>
+                        <div class="value" id="lc-passed">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>剩余</h3>
+                        <div class="value" id="lc-left">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>本周</h3>
+                        <div class="value" id="lc-current">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>进度</h3>
+                        <div class="value" id="lc-progress">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase-config">
+                <h3>人生阶段</h3>
+                <div class="phase-list" id="phase-list">
+                    <button class="add-phase-btn" onclick="openCalendarConfigModal()">+ 添加阶段</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- 配置弹窗 -->
-    <div id="config-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800">系统配置</h3>
-                <button onclick="closeConfigModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <div id="config-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>设置</h3>
+                <button class="modal-close" onclick="closeConfigModal()">×</button>
             </div>
-            <div class="px-6 py-6">
-                <form id="config-form" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">MAC地址</label>
-                        <input type="text" id="mac_address" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="例如: aa:bb:cc:dd:ee:ff">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">静态IP地址</label>
-                        <input type="text" id="static_ip" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="例如: 192.168.1.100">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">上班窗口开始</label>
-                        <input type="time" id="work_start" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">上班窗口结束</label>
-                        <input type="time" id="work_end" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">下班窗口开始</label>
-                        <input type="time" id="home_start" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">下班窗口结束</label>
-                        <input type="time" id="home_end" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">扫描间隔（秒）</label>
-                        <input type="number" id="scan_interval" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="60">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">上班连续丢失次数</label>
-                        <input type="number" id="work_lost_count" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="2">
-                    </div>
-                    <div class="md:col-span-2 flex items-center justify-end gap-3 pt-2">
-                        <button type="button" onclick="closeConfigModal()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-sm font-medium">取消</button>
-                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-blue-500 text-sm font-medium">保存配置</button>
-                    </div>
-                </form>
-            </div>
+            <form id="config-form">
+                <div class="form-group"><label>MAC 地址</label><input type="text" id="mac_address"></div>
+                <div class="form-group"><label>IP 地址</label><input type="text" id="static_ip"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="form-group"><label>上班开始</label><input type="time" id="work_start"></div>
+                    <div class="form-group"><label>上班结束</label><input type="time" id="work_end"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="form-group"><label>下班开始</label><input type="time" id="home_start"></div>
+                    <div class="form-group"><label>下班结束</label><input type="time" id="home_end"></div>
+                </div>
+                <div class="form-group"><label>扫描间隔（秒）</label><input type="number" id="scan_interval" value="60" min="10"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeConfigModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- 补卡弹窗 -->
-    <div id="fix-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800">手动补卡</h3>
-                <button onclick="closeFixModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    <!-- 补录弹窗 -->
+    <div id="fix-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>补录</h3><button class="modal-close" onclick="closeFixModal()">×</button></div>
+            <form id="fix-form">
+                <div class="form-group"><label>日期</label><input type="date" id="fix_work_date"></div>
+                <div class="form-group"><label>类型</label>
+                    <select id="fix_type">
+                        <option value="work">上班</option><option value="home">下班</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>时间</label><input type="datetime-local" id="fix_time"></div>
+                <div class="form-group"><label>备注</label><input type="text" id="fix_remark" placeholder="补录原因"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeFixModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">确认</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 日历配置弹窗 -->
+    <div id="calendar-config-modal" class="modal">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="modal-header"><h3>配置人生日历</h3><button class="modal-close" onclick="closeCalendarConfigModal()">×</button></div>
+            
+            <div style="margin-bottom:24px;">
+                <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">🎨 人生阶段</h4>
+                <div id="phases-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+                <button class="btn btn-outline" onclick="addPhase()" style="font-size:13px;padding:8px 16px;">+ 添加阶段</button>
             </div>
-            <div class="px-6 py-6">
-                <form id="fix-form" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">日期</label>
-                        <input type="date" id="fix_work_date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">补卡类型</label>
-                        <select id="fix_type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
-                            <option value="work">上班打卡</option>
-                            <option value="home">下班打卡</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">打卡时间</label>
-                        <input type="datetime-local" id="fix_time" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">备注（可选）</label>
-                        <input type="text" id="fix_remark" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="补卡原因">
-                    </div>
-                    <div class="flex items-center justify-end gap-3 pt-2">
-                        <button type="button" onclick="closeFixModal()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-sm font-medium">取消</button>
-                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-blue-500 text-sm font-medium">确认补卡</button>
-                    </div>
-                </form>
+            
+            <div style="margin-bottom:24px;">
+                <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">⭐ 重要事件</h4>
+                <div id="events-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+                <button class="btn btn-outline" onclick="addEvent()" style="font-size:13px;padding:8px 16px;">+ 添加事件</button>
+            </div>
+            
+            <div style="background:#fef3c7;padding:12px;border-radius:8px;margin-bottom:16px;font-size:12px;color:#92400e;">
+                <strong>快捷颜色：</strong>
+                <span style="margin-left:8px;padding:2px 6px;background:#fbbf24;color:white;border-radius:4px;">黄色</span>
+                <span style="margin-left:4px;padding:2px 6px;background:#10b981;color:white;border-radius:4px;">绿色</span>
+                <span style="margin-left:4px;padding:2px 6px;background:#3b82f6;color:white;border-radius:4px;">蓝色</span>
+                <span style="margin-left:4px;padding:2px 6px;background:#8b5cf6;color:white;border-radius:4px;">紫色</span>
+                <span style="margin-left:4px;padding:2px 6px;background:#f59e0b;color:white;border-radius:4px;">橙色</span>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-outline" onclick="closeCalendarConfigModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveCalendarConfig()">保存</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 弹窗控制
-        function openConfigModal() {
-            document.getElementById('config-modal').classList.remove('hidden');
-            loadConfig();
-        }
-        function closeConfigModal() {
-            document.getElementById('config-modal').classList.add('hidden');
-        }
-        function openFixModal() {
-            document.getElementById('fix-modal').classList.remove('hidden');
-            // 默认设置今天日期
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const dateStr = `${year}-${month}-${day}`;
-            document.getElementById('fix_work_date').value = dateStr;
-            
-            // 设置当前时间（本地时间，不使用UTC）
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                const tabName = this.dataset.tab;
+                document.getElementById('attendance').style.display = tabName === 'attendance' ? 'block' : 'none';
+                document.getElementById('life-calendar').style.display = tabName === 'calendar' ? 'block' : 'none';
+                if (tabName === 'calendar' && !document.getElementById('calendar-grid').children.length) {
+                    loadCalendarConfig();
+                }
+            });
+        });
+
+        // Time
+        function updateTime() {
             const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('fix_time').value = `${dateStr}T${hours}:${minutes}`;
+            document.getElementById('current-time').textContent = now.toLocaleString('zh-CN', {
+                year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit'
+            });
         }
-        function closeFixModal() {
-            document.getElementById('fix-modal').classList.add('hidden');
-        }
+        setInterval(updateTime, 1000);
+        updateTime();
 
-        // 导出CSV
-        function exportCSV() {
-            window.location.href = '/api/export/csv';
+        // Modals
+        function openConfigModal() { document.getElementById('config-modal').classList.add('active'); loadConfig(); }
+        function closeConfigModal() { document.getElementById('config-modal').classList.remove('active'); }
+        function openFixModal() {
+            document.getElementById('fix-modal').classList.add('active');
+            const today = new Date();
+            document.getElementById('fix_work_date').value = today.toISOString().split('T')[0];
+            document.getElementById('fix_time').value = today.toISOString().slice(0, 16);
         }
+        function closeFixModal() { document.getElementById('fix-modal').classList.remove('active'); }
+        function openCalendarConfigModal() { document.getElementById('calendar-config-modal').classList.add('active'); loadCalendarConfigToForm(); }
+        function closeCalendarConfigModal() { document.getElementById('calendar-config-modal').classList.remove('active'); }
+        function setView(view) {
+            document.getElementById('lc-view').value = view;
+            document.getElementById('btn-week').classList.toggle('active', view === 'week');
+            document.getElementById('btn-day').classList.toggle('active', view === 'day');
+            renderCalendar();
+        }
+        
+        function setDir(dir) {
+            document.getElementById('lc-dir').value = dir;
+            document.getElementById('btn-h').classList.toggle('active', dir === 'h');
+            document.getElementById('btn-v').classList.toggle('active', dir === 'v');
+            renderCalendar();
+        }
+        function exportCSV() { window.location.href = '/api/export/csv'; }
 
-        // 加载状态
+        // Status
         async function loadStatus() {
             try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
-                
-                const deviceStatusEl = document.getElementById('device-status');
-                if (data.device_online) {
-                    deviceStatusEl.innerHTML = '<span class="text-green-600">在线</span>';
-                } else {
-                    deviceStatusEl.innerHTML = '<span class="text-orange-500">离线</span>';
-                }
-                
-                document.getElementById('work-window').textContent = data.in_work_window ? '检测中' : '未在窗口';
-                document.getElementById('home-window').textContent = data.in_home_window ? '检测中' : '未在窗口';
-            } catch (e) {
-                console.error('加载状态失败', e);
-            }
+                document.getElementById('device-status').innerHTML = data.device_online 
+                    ? '<span class="online">在线</span>' : '<span class="offline">离线</span>';
+                document.getElementById('work-window').innerHTML = 
+                    (data.in_work_window ? '<span class="dot active"></span>检测中' : '<span class="dot inactive"></span>未在窗口');
+                document.getElementById('home-window').innerHTML = 
+                    (data.in_home_window ? '<span class="dot active"></span>检测中' : '<span class="dot inactive"></span>未在窗口');
+            } catch (e) { console.error(e); }
         }
 
-        // 格式化时间
-        function formatTime(datetimeStr) {
-            if (!datetimeStr) return '';
-            return datetimeStr.split(' ')[1]?.substring(0, 5) || '';
+        // Attendance
+        function formatTime(str) { if (!str) return '—'; const t = str.split(' ')[1]; return t ? t.substring(0, 5) : '—'; }
+        function getStatusTag(r) {
+            if (r.work_status === 1 && r.home_status === 1) return '<span class="tag tag-complete">完整</span>';
+            if (r.work_status === 1 || r.home_status === 1) return '<span class="tag tag-partial">部分</span>';
+            return '<span class="tag tag-none">未检测</span>';
         }
-
-        // 获取状态标签
-        function getStatusTag(record) {
-            if (record.work_status === 1 && record.home_status === 1) {
-                return '<span class="status-tag status-normal">完整</span>';
-            } else if (record.work_status === 1 || record.home_status === 1) {
-                return '<span class="status-tag status-pending">部分</span>';
-            } else {
-                return '<span class="status-tag status-missing">未检测</span>';
-            }
-        }
-
-        function getTimeText(record, type) {
-            const time = type === 'work' ? record.work_time : record.home_time;
-            const status = type === 'work' ? record.work_status : record.home_status;
-            if (status === 1 && time) {
-                return `<span class="text-gray-800">${formatTime(time)}</span>`;
-            } else {
-                return `<span class="text-gray-400">—</span>`;
-            }
-        }
-
-        // 加载考勤记录
         async function loadAttendance() {
             try {
                 const res = await fetch('/api/attendance?limit=30');
                 const records = await res.json();
-                const listEl = document.getElementById('attendance-list');
-                
-                listEl.innerHTML = records.map(record => {
-                    return `
-                    <tr>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${record.work_date}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm">${getTimeText(record, 'work')}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm">${getTimeText(record, 'home')}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm">${getStatusTag(record)}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm">
-                            <button onclick="openFixModalForDate('${record.work_date}')" class="text-primary hover:text-blue-600 text-sm">补卡</button>
-                        </td>
-                    </tr>
-                    `;
-                }).join('');
-            } catch (e) {
-                console.error('加载考勤失败', e);
-            }
+                document.getElementById('attendance-list').innerHTML = records.map(r => 
+                    `<tr><td class="date">${r.work_date}</td><td class="time">${formatTime(r.work_time)}</td><td class="time">${formatTime(r.home_time)}</td><td>${getStatusTag(r)}</td><td><button class="action-btn" onclick="openFixModalForDate('${r.work_date}')">编辑</button></td></tr>`
+                ).join('');
+            } catch (e) { console.error(e); }
         }
-
-        // 为指定日期打开补卡
-        function openFixModalForDate(workDate) {
-            openFixModal();
-            document.getElementById('fix_work_date').value = workDate;
-        }
-
-        // 加载配置
+        function openFixModalForDate(date) { openFixModal(); document.getElementById('fix_work_date').value = date; }
+        
         async function loadConfig() {
             try {
                 const res = await fetch('/api/config');
-                const config = await res.json();
-                
-                document.getElementById('mac_address').value = config.mac_address || '';
-                document.getElementById('static_ip').value = config.static_ip || '';
-                document.getElementById('work_start').value = config.work_start || '';
-                document.getElementById('work_end').value = config.work_end || '';
-                document.getElementById('home_start').value = config.home_start || '';
-                document.getElementById('home_end').value = config.home_end || '';
-                document.getElementById('scan_interval').value = config.scan_interval || 60;
-                document.getElementById('work_lost_count').value = config.work_lost_count || 2;
-            } catch (e) {
-                console.error('加载配置失败', e);
+                const c = await res.json();
+                document.getElementById('mac_address').value = c.mac_address || '';
+                document.getElementById('static_ip').value = c.static_ip || '';
+                document.getElementById('work_start').value = c.work_start || '';
+                document.getElementById('work_end').value = c.work_end || '';
+                document.getElementById('home_start').value = c.home_start || '';
+                document.getElementById('home_end').value = c.home_end || '';
+                document.getElementById('scan_interval').value = c.scan_interval || 60;
+            } catch (e) { console.error(e); }
+        }
+        
+        document.getElementById('config-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await fetch('/api/config', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mac_address: document.getElementById('mac_address').value,
+                    static_ip: document.getElementById('static_ip').value,
+                    work_start: document.getElementById('work_start').value,
+                    work_end: document.getElementById('work_end').value,
+                    home_start: document.getElementById('home_start').value,
+                    home_end: document.getElementById('home_end').value,
+                    scan_interval: parseInt(document.getElementById('scan_interval').value),
+                    work_lost_count: 2
+                })
+            });
+            closeConfigModal();
+            loadStatus();
+        });
+        
+        document.getElementById('fix-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const timeStr = document.getElementById('fix_time').value;
+            const [date, time] = timeStr.split('T');
+            const [y, m, d] = date.split('-');
+            const [h, min] = time.split(':');
+            await fetch('/api/attendance/fix', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    work_date: document.getElementById('fix_work_date').value,
+                    type: document.getElementById('fix_type').value,
+                    time: `${y}-${m}-${d} ${h}:${min}:00`,
+                    remark: document.getElementById('fix_remark').value
+                })
+            });
+            closeFixModal();
+            loadAttendance();
+        });
+
+        // Life Calendar
+        let calendarConfig = {
+            phases: [
+                {name: '童年', startAge: 0, endAge: 7, color: '#fbbf24', text: '童'},
+                {name: '求学', startAge: 7, endAge: 22, color: '#10b981', text: '学'},
+                {name: '工作', startAge: 22, endAge: 60, color: '#3b82f6', text: '工'},
+                {name: '退休', startAge: 60, endAge: 90, color: '#8b5cf6', text: '休'}
+            ],
+            events: []
+        };
+
+        let zoomLevel = 100;
+
+        function loadCalendarConfig() {
+            const saved = localStorage.getItem('lifeCalendarConfig');
+            if (saved) {
+                try {
+                    calendarConfig = JSON.parse(saved);
+                    document.getElementById('lc-birthday').value = calendarConfig.birthday || '1995-01-01';
+                    document.getElementById('lc-lifespan').value = calendarConfig.lifespan || 90;
+                } catch (e) {}
+            }
+            renderCalendar();
+            updatePhaseList();
+        }
+
+        function loadCalendarConfigToForm() {
+            renderPhasesList();
+            renderEventsList();
+        }
+
+        function renderPhasesList() {
+            const list = document.getElementById('phases-list');
+            list.innerHTML = calendarConfig.phases.map((p, i) => `
+                <div style="display:flex;gap:8px;align-items:center;padding:8px;background:#f9fafb;border-radius:8px;">
+                    <input type="color" value="${p.color}" onchange="updatePhase(${i}, 'color', this.value)" style="width:36px;height:36px;border:none;cursor:pointer;border-radius:6px;">
+                    <div style="flex:1;display:grid;grid-template-columns:1fr 60px 60px 40px;gap:6px;">
+                        <input type="text" value="${p.name}" placeholder="名称" onchange="updatePhase(${i}, 'name', this.value)" style="padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;">
+                        <input type="number" value="${p.startAge}" placeholder="起始" onchange="updatePhase(${i}, 'startAge', this.value)" style="padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;width:60px;">
+                        <input type="number" value="${p.endAge}" placeholder="结束" onchange="updatePhase(${i}, 'endAge', this.value)" style="padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;width:60px;">
+                        <button onclick="deletePhase(${i})" style="width:32px;height:32px;border-radius:6px;border:1px solid #e5e7eb;background:white;color:#ef4444;cursor:pointer;">×</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderEventsList() {
+            const list = document.getElementById('events-list');
+            list.innerHTML = calendarConfig.events.map((e, i) => `
+                <div style="display:flex;gap:8px;align-items:center;padding:8px;background:#f9fafb;border-radius:8px;">
+                    <input type="color" value="${e.color}" onchange="updateEvent(${i}, 'color', this.value)" style="width:36px;height:36px;border:none;cursor:pointer;border-radius:6px;">
+                    <div style="flex:1;display:grid;grid-template-columns:1fr 140px 40px;gap:6px;">
+                        <input type="text" value="${e.name}" placeholder="事件名称" onchange="updateEvent(${i}, 'name', this.value)" style="padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;">
+                        <input type="date" value="${e.date}" onchange="updateEvent(${i}, 'date', this.value)" style="padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;">
+                        <button onclick="deleteEvent(${i})" style="width:32px;height:32px;border-radius:6px;border:1px solid #e5e7eb;background:white;color:#ef4444;cursor:pointer;">×</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updatePhase(index, key, value) {
+            if (key === 'startAge' || key === 'endAge') {
+                calendarConfig.phases[index][key] = parseInt(value) || 0;
+            } else {
+                calendarConfig.phases[index][key] = value;
             }
         }
 
-        // 保存配置
-        document.getElementById('config-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const config = {
-                mac_address: document.getElementById('mac_address').value,
-                static_ip: document.getElementById('static_ip').value,
-                work_start: document.getElementById('work_start').value,
-                work_end: document.getElementById('work_end').value,
-                home_start: document.getElementById('home_start').value,
-                home_end: document.getElementById('home_end').value,
-                scan_interval: parseInt(document.getElementById('scan_interval').value),
-                work_lost_count: parseInt(document.getElementById('work_lost_count').value),
-                workdays: [0, 1, 2, 3, 4]
-            };
-            
-            try {
-                const res = await fetch('/api/config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(config)
-                });
-                
-                if (res.ok) {
-                    alert('配置保存成功');
-                    closeConfigModal();
-                } else {
-                    alert('保存失败');
-                }
-            } catch (e) {
-                alert('保存失败: ' + e.message);
-            }
-        });
+        function updateEvent(index, key, value) {
+            calendarConfig.events[index][key] = value;
+        }
 
-        // 提交补卡
-        document.getElementById('fix-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const workDate = document.getElementById('fix_work_date').value;
-            const type = document.getElementById('fix_type').value;
-            const timeStr = document.getElementById('fix_time').value;
-            const remark = document.getElementById('fix_remark').value;
-            
-            // 转换为 YYYY-MM-DD HH:MM:SS 格式（使用本地时间而非UTC）
-            // 注意：datetime-local输入返回的是本地时间字符串，格式为 YYYY-MM-DDTHH:MM
-            // 我们直接解析字符串，避免Date对象的时区问题
-            const [datePart, timePart] = timeStr.split('T');
-            const [year, month, day] = datePart.split('-');
-            const [hours, minutes] = timePart.split(':');
-            const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:00`;
-            
-            // 调试日志
-            console.log('补卡时间处理:');
-            console.log('  原始输入:', timeStr);
-            console.log('  解析结果:', formattedTime);
-            
-            const data = {
-                work_date: workDate,
-                type: type,
-                time: formattedTime,
-                remark: remark
-            };
-            
-            try {
-                const res = await fetch('/api/attendance/fix', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await res.json();
-                if (result.status === 'success') {
-                    alert('补卡成功');
-                    closeFixModal();
-                    loadAttendance();
-                } else {
-                    alert('补卡失败: ' + (result.message || '未知错误'));
-                }
-            } catch (e) {
-                alert('补卡失败: ' + e.message);
-            }
-        });
+        function deletePhase(index) {
+            calendarConfig.phases.splice(index, 1);
+            renderPhasesList();
+        }
 
-        // 初始化
+        function deleteEvent(index) {
+            calendarConfig.events.splice(index, 1);
+            renderEventsList();
+        }
+
+        function addPhase() {
+            calendarConfig.phases.push({name: '新阶段', startAge: 0, endAge: 10, color: '#6b7280', text: ''});
+            renderPhasesList();
+        }
+
+        function addEvent() {
+            calendarConfig.events.push({name: '新事件', date: new Date().toISOString().split('T')[0], color: '#f59e0b'});
+            renderEventsList();
+        }
+
+        function saveCalendarConfig() {
+            calendarConfig.birthday = document.getElementById('lc-birthday').value;
+            calendarConfig.lifespan = parseInt(document.getElementById('lc-lifespan').value);
+            localStorage.setItem('lifeCalendarConfig', JSON.stringify(calendarConfig));
+            closeCalendarConfigModal();
+            renderCalendar();
+            updatePhaseList();
+        }
+
+        function updatePhaseList() {
+            document.getElementById('phase-list').innerHTML = calendarConfig.phases.map(p => 
+                `<div class="phase-tag" style="background:${p.color}">${p.name} <span class="age">${p.startAge}-${p.endAge}岁</span></div>`
+            ).join('') + '<button class="add-phase-btn" onclick="openCalendarConfigModal()">+ 添加</button>';
+        }
+
+        // Zoom functions
+        function zoomIn() {
+            zoomLevel = Math.min(200, zoomLevel + 10);
+            applyZoom();
+        }
+        function zoomOut() {
+            zoomLevel = Math.max(30, zoomLevel - 10);
+            applyZoom();
+        }
+        function resetZoom() {
+            zoomLevel = 100;
+            applyZoom();
+        }
+        function applyZoom() {
+            document.getElementById('zoom-level').textContent = zoomLevel + '%';
+            document.getElementById('calendar-grid').style.transform = `scale(${zoomLevel / 100})`;
+        }
+
+        function renderCalendar() {
+            const birthday = new Date(document.getElementById('lc-birthday').value);
+            const lifespan = parseInt(document.getElementById('lc-lifespan').value) || 90;
+            const view = document.getElementById('lc-view').value;
+            const dir = document.getElementById('lc-dir').value;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            
+            const unitsPerYear = view === 'week' ? 52 : 365;
+            const cellSize = view === 'week' ? 14 : 4;
+            const gap = 2;
+            const labelWidth = 36;
+            const containerWidth = grid.parentElement.clientWidth || window.innerWidth - 100;
+            
+            let passed = 0, left = 0, total = lifespan * unitsPerYear;
+            const birthTime = birthday.getTime();
+            
+            // Build event map
+            const eventMap = {};
+            calendarConfig.events.forEach(ev => {
+                const evDate = new Date(ev.date);
+                const unitsFromBirth = Math.floor((evDate - birthday) / (24 * 60 * 60 * 1000 / (view === 'week' ? 7 : 1)));
+                if (unitsFromBirth >= 0 && unitsFromBirth < total) {
+                    eventMap[unitsFromBirth] = ev;
+                }
+            });
+            
+            if (dir === 'h') {
+                // 横排：每年一行（lifespan行），每周一列（52列）
+                grid.style.flexDirection = 'column';
+                for (let year = 0; year < lifespan; year++) {
+                    const row = document.createElement('div');
+                    row.className = 'week-row';
+                    
+                    // 年龄标签
+                    const label = document.createElement('div');
+                    label.className = 'year-label';
+                    label.textContent = year + '岁';
+                    row.appendChild(label);
+                    
+                    // 52周
+                    for (let week = 0; week < unitsPerYear; week++) {
+                        const unitIndex = year * unitsPerYear + week;
+                        const cellDate = new Date(birthTime + unitIndex * (view === 'week' ? 7 : 1) * 24 * 60 * 60 * 1000);
+                        
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.style.width = cellSize + 'px';
+                        cell.style.height = cellSize + 'px';
+                        
+                        if (cellDate > today) {
+                            left++;
+                        } else {
+                            passed++;
+                            const age = (cellDate - birthday) / (365.25 * 24 * 60 * 60 * 1000);
+                            const phase = calendarConfig.phases.find(p => age >= p.startAge && age < p.endAge);
+                            if (phase) cell.style.background = phase.color;
+                            const ev = eventMap[unitIndex];
+                            if (ev) { cell.style.background = ev.color; cell.title = ev.name; }
+                        }
+                        row.appendChild(cell);
+                    }
+                    grid.appendChild(row);
+                }
+            } else {
+                // 竖排：每行2年（104周），每年有序排列无锯齿
+                grid.style.flexDirection = 'column';
+                const yearsPerRow = 2;
+                
+                for (let year = 0; year < lifespan; year += yearsPerRow) {
+                    const row = document.createElement('div');
+                    row.className = 'week-row';
+                    
+                    // 年龄标签（显示起始年份）
+                    const label = document.createElement('div');
+                    label.className = 'year-label';
+                    label.textContent = year + '岁';
+                    label.style.width = labelWidth + 'px';
+                    row.appendChild(label);
+                    
+                    // 每年52周，两年共104周
+                    for (let y = 0; y < yearsPerRow && (year + y) < lifespan; y++) {
+                        for (let week = 0; week < unitsPerYear; week++) {
+                            const unitIndex = (year + y) * unitsPerYear + week;
+                            const cellDate = new Date(birthTime + unitIndex * (view === 'week' ? 7 : 1) * 24 * 60 * 60 * 1000);
+                            
+                            const cell = document.createElement('div');
+                            cell.className = 'cell';
+                            cell.style.width = cellSize + 'px';
+                            cell.style.height = cellSize + 'px';
+                            
+                            if (cellDate > today) {
+                                left++;
+                            } else {
+                                passed++;
+                                const age = (cellDate - birthday) / (365.25 * 24 * 60 * 60 * 1000);
+                                const phase = calendarConfig.phases.find(p => age >= p.startAge && age < p.endAge);
+                                if (phase) cell.style.background = phase.color;
+                                const ev = eventMap[unitIndex];
+                                if (ev) { cell.style.background = ev.color; cell.title = ev.name; }
+                            }
+                            row.appendChild(cell);
+                        }
+                    }
+                    grid.appendChild(row);
+                }
+            }
+            
+            // Stats
+            const unitLabel = view === 'week' ? '周' : '天';
+            document.getElementById('lc-passed').textContent = passed + unitLabel;
+            document.getElementById('lc-left').textContent = left + unitLabel;
+            document.getElementById('lc-current').textContent = (view === 'week' ? Math.floor((today - birthday) / (7 * 24 * 60 * 60 * 1000)) : Math.floor((today - birthday) / (24 * 60 * 60 * 1000))) + unitLabel;
+            document.getElementById('lc-progress').textContent = Math.round(passed / total * 100) + '%';
+            
+            // Legend
+            document.getElementById('calendar-legend').innerHTML = 
+                '<div class="legend-item"><div class="legend-dot" style="background:#e5e7eb"></div><span>未来</span></div>' +
+                '<div class="legend-item"><div class="legend-dot" style="background:#1a1a2e"></div><span>已度过</span></div>' +
+                calendarConfig.phases.map(p => `<div class="legend-item"><div class="legend-dot" style="background:${p.color}"></div><span>${p.name}</span></div>`).join('');
+        }
+
+        // Init
         loadStatus();
         loadAttendance();
-        
-        // 每分钟刷新
-        setInterval(loadStatus, 60000);
+        setInterval(loadStatus, 30000);
     </script>
 </body>
 </html>

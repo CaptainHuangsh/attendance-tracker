@@ -278,6 +278,7 @@ def update_home_time():
 
 # 持久化计数器路径
 WORK_COUNTER_PATH = "data/work_counter.txt"
+HOME_FIRST_ONLINE_PATH = "data/home_first_online.txt"
 
 # 读取持久化计数器
 def load_work_counter():
@@ -294,6 +295,27 @@ def save_work_counter(counter):
     os.makedirs(os.path.dirname(WORK_COUNTER_PATH), exist_ok=True)
     with open(WORK_COUNTER_PATH, 'w') as f:
         f.write(str(counter))
+
+# 读取下班首次在线时间
+def load_home_first_online():
+    if os.path.exists(HOME_FIRST_ONLINE_PATH):
+        try:
+            with open(HOME_FIRST_ONLINE_PATH, 'r') as f:
+                return f.read().strip()
+        except:
+            return None
+    return None
+
+# 保存下班首次在线时间
+def save_home_first_online(timestamp):
+    os.makedirs(os.path.dirname(HOME_FIRST_ONLINE_PATH), exist_ok=True)
+    with open(HOME_FIRST_ONLINE_PATH, 'w') as f:
+        f.write(timestamp)
+
+# 清除下班首次在线时间
+def clear_home_first_online():
+    if os.path.exists(HOME_FIRST_ONLINE_PATH):
+        os.remove(HOME_FIRST_ONLINE_PATH)
 
 # 后台扫描任务
 def scan_loop():
@@ -312,8 +334,10 @@ def scan_loop():
                 
             config = load_config()
             today_record = get_today_record()
+            now = datetime.datetime.now()
+            current_date = get_work_date()
             
-            # 上班检测逻辑：如果已经打卡，跳过计数
+            # 上班检测逻辑
             if is_in_work_window() and today_record["work_status"] == 0:
                 online = is_device_online()
                 if not online:
@@ -325,33 +349,57 @@ def scan_loop():
                         work_lost_counter = 0
                         save_work_counter(work_lost_counter)
                 else:
-                    # 设备在线，重置计数器（用户还在家）
-                    if work_lost_counter > 0:
-                        work_lost_counter = 0
-                        save_work_counter(work_lost_counter)
-                        logger.info(f"上班检测: 设备在线，重置计数器")
+                    # BUG修复: 设备在线时不重置计数器
+                    # 只在窗口结束时重置，或成功打卡后重置
+                    logger.debug(f"上班检测: 设备在线，计数器保持={work_lost_counter}")
             else:
-                # 不在上班窗口或已打卡，重置计数器
+                # 不在上班窗口或已打卡，根据日期重置计数器
                 if work_lost_counter > 0:
                     work_lost_counter = 0
                     save_work_counter(work_lost_counter)
                     logger.info(f"不在上班窗口或已打卡，重置计数器")
             
-            # 下班检测逻辑
+            # 下班检测逻辑（修复：添加持续在线验证）
             if is_in_home_window() and today_record["home_status"] == 0:
                 online = is_device_online()
-                logger.info(f"下班检测: 窗口内={is_in_home_window()}, 已打卡={today_record['home_status']==1}, 设备在线={online}, 日期={get_work_date()}")
+                first_online_time = load_home_first_online()
+                
                 if online:
-                    update_home_time()
-                    logger.info(f"下班打卡成功: {get_work_date()}")
+                    if first_online_time is None:
+                        # 首次检测到在线，记录时间
+                        save_home_first_online(now.strftime("%Y-%m-%d %H:%M:%S"))
+                        logger.info(f"下班检测: 首次检测到在线，等待确认: {now.strftime('%H:%M:%S')}")
+                    else:
+                        # 持续在线，用首次时间打卡
+                        logger.info(f"下班检测: 持续在线，确认到家时间: {first_online_time}")
+                        # 更新下班时间（使用首次检测到的在线时间）
+                        record = get_today_record()
+                        if record["home_status"] == 0:
+                            home_time = first_online_time
+                            conn = sqlite3.connect(DB_PATH)
+                            c = conn.cursor()
+                            c.execute("""UPDATE attendance 
+                                         SET home_time = ?, home_status = 1, update_time = CURRENT_TIMESTAMP
+                                         WHERE work_date = ?""", (home_time, current_date))
+                            conn.commit()
+                            conn.close()
+                            logger.info(f"下班打卡成功: {current_date} {home_time}")
+                            clear_home_first_online()
                 else:
-                    logger.info(f"下班检测: 设备离线，不打卡")
+                    # 设备离线，清除首次在线记录（避免误判）
+                    if first_online_time is not None:
+                        clear_home_first_online()
+                        logger.info(f"下班检测: 设备离线，清除首次在线记录")
+                    logger.debug(f"下班检测: 设备离线，不打卡")
             elif is_in_home_window() and today_record["home_status"] == 1:
-                logger.info(f"下班检测: 窗口内但已打卡, 时间={today_record['home_time']}")
-            elif not is_in_home_window() and today_record["home_status"] == 0:
-                # 记录不在窗口的时间，用于调试
-                now = datetime.datetime.now()
-                logger.debug(f"不在下班窗口: 当前时间={now.strftime('%H:%M')}, 窗口={config['home_start']}-{config['home_end']}")
+                # 已打卡时也清除可能的残留记录
+                clear_home_first_online()
+                logger.debug(f"下班检测: 窗口内但已打卡, 时间={today_record['home_time']}")
+            elif not is_in_home_window():
+                # 不在窗口时清除记录
+                if load_home_first_online() is not None:
+                    clear_home_first_online()
+                    logger.debug(f"不在下班窗口，清除首次在线记录")
             
             time.sleep(config["scan_interval"])
         except Exception as e:
